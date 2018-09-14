@@ -6,7 +6,7 @@
 #define JEMALLOC_HAVE_ATTR_ALLOC_SIZE 
 
 /* Defined if format(gnu_printf, ...) attribute is supported. */
-#define JEMALLOC_HAVE_ATTR_FORMAT_GNU_PRINTF 
+/* #undef JEMALLOC_HAVE_ATTR_FORMAT_GNU_PRINTF */
 
 /* Defined if format(printf, ...) attribute is supported. */
 #define JEMALLOC_HAVE_ATTR_FORMAT_PRINTF 
@@ -16,9 +16,7 @@
  * present on the system.
  */
 #define JEMALLOC_OVERRIDE_MEMALIGN 
-#ifndef __LP64__
 #define JEMALLOC_OVERRIDE_VALLOC 
-#endif
 
 /*
  * At least Linux omits the "const" in:
@@ -45,7 +43,7 @@
 #endif
 
 /* sizeof(void *) == 2^LG_SIZEOF_PTR. */
-#ifdef __LP64__
+#if defined(__LP64__)
 #define LG_SIZEOF_PTR 3
 #else
 #define LG_SIZEOF_PTR 2

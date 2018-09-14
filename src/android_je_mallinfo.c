@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-/* This is an implementation that uses the same arena access pattern found
- * in the arena_stats_merge function from src/arena.c.
+/* Only use bin locks since the stats are now all atomic and can be read
+ * without taking the stats lock.
  */
 struct mallinfo je_mallinfo() {
   struct mallinfo mi;
@@ -23,18 +23,16 @@ struct mallinfo je_mallinfo() {
 
   malloc_mutex_lock(TSDN_NULL, &arenas_lock);
   for (unsigned i = 0; i < narenas_auto; i++) {
-    if (arenas[i] != NULL) {
-      malloc_mutex_lock(TSDN_NULL, &arenas[i]->lock);
-      mi.hblkhd += arenas[i]->stats.mapped;
-      mi.uordblks += arenas[i]->stats.allocated_large;
-      mi.uordblks += arenas[i]->stats.allocated_huge;
-      malloc_mutex_unlock(TSDN_NULL, &arenas[i]->lock);
+    arena_t* arena = atomic_load_p(&arenas[i], ATOMIC_ACQUIRE);
+    if (arena != NULL) {
+      mi.hblkhd += atomic_load_zu(&arena->stats.mapped, ATOMIC_ACQUIRE);
+      mi.uordblks += atomic_load_zu(&arena->stats.allocated_large, ATOMIC_ACQUIRE);
 
       for (unsigned j = 0; j < NBINS; j++) {
-        arena_bin_t* bin = &arenas[i]->bins[j];
+        bin_t* bin = &arena->bins[j];
 
         malloc_mutex_lock(TSDN_NULL, &bin->lock);
-        mi.uordblks += arena_bin_info[j].reg_size * bin->stats.curregs;
+        mi.uordblks += bin_infos[j].reg_size * bin->stats.curregs;
         malloc_mutex_unlock(TSDN_NULL, &bin->lock);
       }
     }
@@ -59,18 +57,16 @@ struct mallinfo __mallinfo_arena_info(size_t aidx) {
 
   malloc_mutex_lock(TSDN_NULL, &arenas_lock);
   if (aidx < narenas_auto) {
-    if (arenas[aidx] != NULL) {
-      malloc_mutex_lock(TSDN_NULL, &arenas[aidx]->lock);
-      mi.hblkhd = arenas[aidx]->stats.mapped;
-      mi.ordblks = arenas[aidx]->stats.allocated_large;
-      mi.uordblks = arenas[aidx]->stats.allocated_huge;
-      malloc_mutex_unlock(TSDN_NULL, &arenas[aidx]->lock);
+    arena_t* arena = atomic_load_p(&arenas[aidx], ATOMIC_ACQUIRE);
+    if (arena != NULL) {
+      mi.hblkhd = atomic_load_zu(&arena->stats.mapped, ATOMIC_ACQUIRE);
+      mi.ordblks = atomic_load_zu(&arena->stats.allocated_large, ATOMIC_ACQUIRE);
 
       for (unsigned j = 0; j < NBINS; j++) {
-        arena_bin_t* bin = &arenas[aidx]->bins[j];
+        bin_t* bin = &arena->bins[j];
 
         malloc_mutex_lock(TSDN_NULL, &bin->lock);
-        mi.fsmblks += arena_bin_info[j].reg_size * bin->stats.curregs;
+        mi.fsmblks += bin_infos[j].reg_size * bin->stats.curregs;
         malloc_mutex_unlock(TSDN_NULL, &bin->lock);
       }
     }
@@ -85,13 +81,14 @@ struct mallinfo __mallinfo_bin_info(size_t aidx, size_t bidx) {
 
   malloc_mutex_lock(TSDN_NULL, &arenas_lock);
   if (aidx < narenas_auto && bidx < NBINS) {
-    if (arenas[aidx] != NULL) {
-      arena_bin_t* bin = &arenas[aidx]->bins[bidx];
+    arena_t* arena = atomic_load_p(&arenas[aidx], ATOMIC_ACQUIRE);
+    if (arena != NULL) {
+      bin_t* bin = &arena->bins[bidx];
 
       malloc_mutex_lock(TSDN_NULL, &bin->lock);
-      mi.ordblks = arena_bin_info[bidx].reg_size * bin->stats.curregs;
-      mi.uordblks = bin->stats.nmalloc;
-      mi.fordblks = bin->stats.ndalloc;
+      mi.ordblks = bin_infos[bidx].reg_size * bin->stats.curregs;
+      mi.uordblks = (size_t) bin->stats.nmalloc;
+      mi.fordblks = (size_t) bin->stats.ndalloc;
       malloc_mutex_unlock(TSDN_NULL, &bin->lock);
     }
   }
