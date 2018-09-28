@@ -59,26 +59,30 @@ common_c_local_includes = [
 //     1 << XX is the maximum sized allocation that will be in the tcache.
 
 android_common_cflags = [
-    "-DANDROID_LG_TCACHE_MAXCLASS_DEFAULT=16",
-    // Default to a single arena for svelte configurations to minimize
-    // PSS. This will be overridden by android_product_variables for
-    // non-svelte configs.
-    "-DANDROID_NUM_ARENAS=1",
     "-DANDROID_TCACHE_NSLOTS_SMALL_MIN=1",
-    "-DANDROID_TCACHE_NSLOTS_SMALL_MAX=1",
+    "-DANDROID_LG_TCACHE_MAXCLASS_DEFAULT=16",
+
+    // Default some parameters to small values to minimize PSS.
+    // These parameters will be overridden by android_product_variables
+    // for non-svelte configs.
+    "-DANDROID_NUM_ARENAS=1",
+    // This value cannot go below 2.
+    "-DANDROID_TCACHE_NSLOTS_SMALL_MAX=2",
     "-DANDROID_TCACHE_NSLOTS_LARGE=1",
 ]
 
-android_common_product_variables = {
+android_product_variables = {
     // Only enable the tcache on non-svelte configurations, to save PSS.
     malloc_not_svelte: {
         cflags: [
+            "-DANDROID_ENABLE_TCACHE",
+
             "-UANDROID_NUM_ARENAS",
             "-DANDROID_NUM_ARENAS=2",
-            "-UANDROID_TCACHE_NSLOTS_SMALL_MIN",
-            "-DANDROID_TCACHE_NSLOTS_SMALL_MIN=1",
+
             "-UANDROID_TCACHE_NSLOTS_SMALL_MAX",
             "-DANDROID_TCACHE_NSLOTS_SMALL_MAX=8",
+
             "-UANDROID_TCACHE_NSLOTS_LARGE",
             "-DANDROID_TCACHE_NSLOTS_LARGE=16",
         ],
@@ -94,7 +98,7 @@ cc_defaults {
     target: {
         android: {
             cflags: android_common_cflags,
-            product_variables: android_common_product_variables,
+            product_variables: android_product_variables,
         },
         linux_glibc: {
             enabled: true,

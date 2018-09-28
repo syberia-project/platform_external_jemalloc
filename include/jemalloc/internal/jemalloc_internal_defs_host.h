@@ -292,7 +292,7 @@
  */
 /* #undef JEMALLOC_PURGE_MADVISE_FREE */
 #define JEMALLOC_PURGE_MADVISE_DONTNEED 
-/* #undef JEMALLOC_PURGE_MADVISE_DONTNEED_ZEROS */
+#define JEMALLOC_PURGE_MADVISE_DONTNEED_ZEROS
 
 /* Defined if madvise(2) is available but MADV_FREE is not (x86 Linux only). */
 /* #undef JEMALLOC_DEFINE_MADVISE_FREE */
@@ -334,7 +334,9 @@
 #define LG_SIZEOF_INTMAX_T 3
 
 /* glibc malloc hooks (__malloc_hook, __realloc_hook, __free_hook). */
+#if !defined(__ANDROID__)
 #define JEMALLOC_GLIBC_MALLOC_HOOK 
+#endif
 
 /* glibc memalign hook. */
 #define JEMALLOC_GLIBC_MEMALIGN_HOOK 
