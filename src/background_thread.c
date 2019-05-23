@@ -819,9 +819,9 @@ background_thread_stats_read(tsdn_t *tsdn, background_thread_stats_t *stats) {
 #undef BILLION
 #undef BACKGROUND_THREAD_MIN_INTERVAL_NS
 
-#ifdef JEMALLOC_HAVE_DLSYM
-#include <dlfcn.h>
-#endif
+//#ifdef JEMALLOC_HAVE_DLSYM
+//#include <dlfcn.h>
+//#endif
 
 static bool
 pthread_create_fptr_init(void) {
@@ -833,11 +833,11 @@ pthread_create_fptr_init(void) {
 	 * wrapper for pthread_create; and 2) application may define its own
 	 * wrapper as well (and can call malloc within the wrapper).
 	 */
-#ifdef JEMALLOC_HAVE_DLSYM
-	pthread_create_fptr = dlsym(RTLD_NEXT, "pthread_create");
-#else
+//#ifdef JEMALLOC_HAVE_DLSYM
+//	pthread_create_fptr = dlsym(RTLD_NEXT, "pthread_create");
+//#else
 	pthread_create_fptr = NULL;
-#endif
+//#endif
 	if (pthread_create_fptr == NULL) {
 		if (config_lazy_lock) {
 			malloc_write("<jemalloc>: Error in dlsym(RTLD_NEXT, "
